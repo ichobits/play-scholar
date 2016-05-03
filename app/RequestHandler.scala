@@ -11,17 +11,12 @@ class RequestHandler @Inject() (router: Router, errorHandler: HttpErrorHandler,
     val reqPath = request.path
     if(
       reqPath == "/" ||
-      reqPath.startsWith("/url") ||
-      reqPath.startsWith("/xjs/") ||
+      reqPath.startsWith("/scholar") ||
+      reqPath.startsWith("/intl/") ||
       reqPath.startsWith("/images/") ||
-      reqPath.startsWith("/gen_204") ||
-      reqPath.startsWith("/search") ||
-      reqPath.startsWith("/complete/search") ||
       reqPath.startsWith("/favicon.ico") ||
-      reqPath.startsWith("/robots.txt") ||
-      reqPath.startsWith("/logo/") ||
-      reqPath.startsWith("/logos/") ||
-      reqPath.startsWith("/textinputassistant/tia.png")
+      reqPath.startsWith("/favicon-png.ico") ||
+      reqPath.startsWith("/robots.txt")
     ){
       //println("Pass: " + request.path)
       super.routeRequest(request)
