@@ -10,8 +10,8 @@ GET     /assets/*file                                controllers.Assets.versione
 #	First should be blackHole
 GET     /blackHole/*pathPart                         controllers.Application.blackHole(pathPart: String)
 
-GET     /                                            controllers.Application.get(pathPart: String = "/", bbaassee: String ?= "")
-GET     /*pathPart                                   controllers.Application.get(pathPart: String, bbaassee: String ?= "")
+GET     /                                            controllers.Application.get(pathPart: String = "/")
+GET     /*pathPart                                   controllers.Application.get(pathPart: String)
 POST    /*pathPart                                   controllers.Application.post(pathPart: String)
 
 

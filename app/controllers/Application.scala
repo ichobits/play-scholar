@@ -3,23 +3,28 @@ package controllers
 import java.util.Base64
 import akka.stream.Materializer
 import com.google.inject.Inject
+import play.api.Configuration
 import play.api.http.HttpEntity
-import play.api.libs.ws.{StreamedResponse, WSClient}
+import play.api.libs.ws.{DefaultWSProxyServer, StreamedResponse, WSClient}
 import play.api.mvc._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.Random
 
-class Application @Inject() (ws: WSClient, implicit val mat: Materializer) extends Controller {
+class Application @Inject() (ws: WSClient, config: Configuration, implicit val mat: Materializer) extends Controller {
   val ignoreHeaders = Set("host", "play_session", "x-request-id", "x-forwarded-for", "x-forwarded-proto", "x-forwarded-port", "via", "connect-time", "x-request-start", "total-route-time")
+  val useHttpProxy = config.getBoolean("httpProxy.enable").getOrElse(false)
+  val httpProxyList = config.getStringSeq("httpProxy.list").getOrElse(Seq.empty[String])
 
   /**
     * Proxy all requests to Google Search.
+    *
     * @param pathPart match the sub path in request.
     * @param bbaassee raw query parameters encoded in base64 format.
     * @return Result
     */
-  def get(pathPart: String, bbaassee: String) = Action.async{ request =>
+  def get(pathPart: String) = Action.async{ request =>
     request.path match {
       case path =>
         //Remove proxy headers
@@ -32,20 +37,18 @@ class Application @Inject() (ws: WSClient, implicit val mat: Materializer) exten
             (k, v.replaceFirst("""//[^/]+/?""", "//scholar.google.com/"))
           case other => other
         }
-        val refinedRawQueryStr = bbaassee match {
-          case base if base.trim == "" =>
-            request.rawQueryString
-          case base =>
-            val bytes = Base64.getUrlDecoder.decode(base)
-            new String(bytes, "utf-8")
-        }
         val url =
           if(request.path == "/"){
             s"https://scholar.google.com"
           } else {
-            s"https://scholar.google.com${request.path}?${refinedRawQueryStr}"
+            s"https://scholar.google.com${request.path}?${request.rawQueryString}"
           }
-        val req = ws.url(url).withRequestTimeout(15 seconds).withMethod("GET").withHeaders(headers.toList: _*)
+        var req = ws.url(url).withRequestTimeout(15 seconds).withMethod("GET").withHeaders(headers.toList: _*)
+        if(useHttpProxy){
+          val randHttpProxy = httpProxyList(Random.nextInt(httpProxyList.size))
+          val proxySplitArr = randHttpProxy.split(":")
+          req = req.withProxyServer(DefaultWSProxyServer(proxySplitArr(0), proxySplitArr(1).toInt))
+        }
         req
           //.withRequestFilter(AhcCurlRequestLogger())
           .stream().flatMap {
