@@ -21,7 +21,6 @@ class Application @Inject() (ws: WSClient, config: Configuration, implicit val m
     * Proxy all requests to Google Search.
     *
     * @param pathPart match the sub path in request.
-    * @param bbaassee raw query parameters encoded in base64 format.
     * @return Result
     */
   def get(pathPart: String) = Action.async{ request =>
@@ -53,10 +52,16 @@ class Application @Inject() (ws: WSClient, config: Configuration, implicit val m
           //.withRequestFilter(AhcCurlRequestLogger())
           .stream().flatMap {
           case StreamedResponse(response, body) =>
+            val reqHost =
+              if(request.host.contains(":")){
+                request.host.split(":")(0)
+              } else {
+                request.host
+              }
             //Refine response headers
             val respHeaders = response.headers.map{
               case (k, seq) if k.trim.toLowerCase == "set-cookie" =>
-                (k, seq.map(v => v.replaceAll("""domain=[^;=]+\.com;?""", "")))
+                (k, seq.map(v => v.replaceAll("domain=[^;]*;", s"domain=${reqHost};")))
               case other => other
             }
 
